@@ -7,13 +7,13 @@
 #include "armystack.h"
 
 int calcHashBasic(const void* obj, int size) {
-    assert(!(size & 3)); // divisible by 4
+    assert(size % sizeof(int) == 0);
     size >>= 2;
 
     const int* a = reinterpret_cast<const int*>(obj);
     int ans = 0;
     for (int i = 0; i < size; ++i) {
-        ans ^= a[i];
+        ans ^= a[i] * (i + 1);
     }
     return ans;
 }
@@ -26,7 +26,7 @@ int ArmyStack::Element::calcHash() const {
     return factHash;
 }
 
-bool ArmyStack::Element::softCheck(int canary) const{
+bool ArmyStack::Element::silentCheck(int canary) const{
     return mHash == calcHash() && mCanary == canary;
 }
 
@@ -42,39 +42,67 @@ int ArmyStack::calcHash() const {
     return factHash;
 }
 
-bool ArmyStack::softCheck() const {
-    return mHash == calcHash();
-}
-
-void ArmyStack::check() const {
-    if (!softCheck()) {
-        crashAndDump("header checksum mismatch");
+constexpr const char* ArmyStack::Errors::getMessage(int code) {
+    switch (code) {
+    case OK:
+        return "OK";
+    case BAD_HEADER:
+        return "header hash/canary mismatch";
+    case BAD_DATA:
+        return "data hash/canary mismatch";
+    case BAD_SIZE:
+        return "bad mSize, mCapacity and/or their relationship";
+    case POP_WHEN_EMPTY:
+        return "trying to pop or access top of an empty stack";
+    default:
+        return "UNKNOWN ERROR";
     }
 }
 
-void ArmyStack::checkAt(int i) const {
-    check();
-    if (!mBuf[i].softCheck(mCanariesVal)) {
-        crashAndDump("data corrupt");
+#define CHECK_FAIL(code) \
+    if (silent || code == Errors::OK) { \
+        return code; \
+    } else { \
+        crashAndDump(Errors::getMessage(code)); \
     }
+
+int ArmyStack::check(bool silent) const {
+    if (mSize < 0 || mCapacity < 0 || mSize > mCapacity) {
+        CHECK_FAIL(Errors::BAD_SIZE);
+    }
+    if (mHash != calcHash()) {
+        CHECK_FAIL(Errors::BAD_HEADER);
+    }
+    for (int i = 0; i < mSize; ++i) {
+        if (!silentCheckAt(i)) {
+            CHECK_FAIL(Errors::BAD_DATA);
+        }
+    }
+    return Errors::OK;
+}
+
+bool ArmyStack::silentCheckAt(int i) const {
+    if (!mBuf[i].silentCheck(mCanariesVal)) {
+        return false;
+    }
+    return true;
 }
 
 void ArmyStack::realloc(int cap) {
-    assert(cap >= mSize);
     check();
 
     Element *newBuf = new Element[cap];
 
     if (mBuf) {
         for (int i = 0; i < mSize; ++i) {
-            assert(mBuf[i].softCheck(mCanariesVal));
+            assert(mBuf[i].silentCheck(mCanariesVal));
             newBuf[i] = mBuf[i];
         }
         for (int i = mCapacity; i < cap; ++i) {
             newBuf[i].mCanary = mCanariesVal;
             newBuf[i].mData = 0;
             newBuf[i].updateHash();
-            assert(newBuf[i].softCheck(mCanariesVal));
+            assert(newBuf[i].silentCheck(mCanariesVal));
         }
         delete[] mBuf;
     }
@@ -87,20 +115,20 @@ void ArmyStack::realloc(int cap) {
 }
 
 int ArmyStack::topIndex() const {
-    assert(size());
+    if (size() == 0) {
+        crashAndDump(Errors::getMessage(Errors::POP_WHEN_EMPTY));
+    }
     return mSize - 1;
 }
 
 int ArmyStack::size() const {
-    check();
     return mSize;
 }
 
 int ArmyStack::top() const {
     check();
-    assert(size());
     const Element& el = mBuf[topIndex()];
-    assert(el.softCheck(mCanariesVal));
+    assert(el.silentCheck(mCanariesVal));
     return el.mData;
 }
 
@@ -119,7 +147,7 @@ void ArmyStack::push(int x) {
     el.mData = x;
     el.updateHash();
 
-    assert(el.softCheck(mCanariesVal));
+    assert(el.silentCheck(mCanariesVal));
     check();
 }
 
@@ -154,29 +182,32 @@ ArmyStack::ArmyStack(int cap, int canariesVal):
 
 ArmyStack::~ArmyStack() {
     check();
-    for (int i = 0; i < mSize; ++i) {
-        checkAt(i);
-    }
 }
 
 #define eprintf(...) fprintf (stderr, __VA_ARGS__)
 
 void ArmyStack::crashAndDump(const char* reason) const {
-    eprintf("ArmyStack is corrupt!\nMessage: %s\nDump follows:\n", reason);
+    eprintf("ArmyStack is corrupt or bad operation is applied!\nMessage: %s\nDump follows:\n", reason);
     eprintf("ArmyStack@%p:\n", this);
     eprintf("  mCapacity: %d\n", mCapacity);
     eprintf("  mSize: %d\n", mSize);
     eprintf("  mCanariesVal: %d\n", mCanariesVal);
-    if (softCheck()) {
-        eprintf("  mHash: %d\n", mHash);
+
+    int hashStored = mHash;
+    int hashReal = calcHash();
+    if (hashStored == hashReal) {
+        eprintf("  mHash: %d\n", hashStored);
         eprintf("  mBuf: %p\n", mBuf);
-        char tmp[30];
+
+        char tmp[30] = "";
         for (int i = 0; i < mCapacity; ++i) {
-            sprintf(tmp, "    [%d]", i);
+            int len = sprintf(tmp, "    [%d]", i);
+
             eprintf("%s mCanary: %d\n", tmp, mBuf[i].mCanary);
-            std::fill(tmp, tmp + strlen(tmp), ' ');
+            std::fill(tmp, tmp + len, ' ');
             eprintf("%s mData: %d\n", tmp, mBuf[i].mData);
-            if (mBuf[i].softCheck(mCanariesVal)) {
+
+            if (mBuf[i].silentCheck(mCanariesVal)) {
                 eprintf("%s mHash: %d\n", tmp, mBuf[i].mHash);
             } else {
                 int hash = mBuf[i].mHash;
@@ -184,10 +215,10 @@ void ArmyStack::crashAndDump(const char* reason) const {
             }
         }
     } else {
-        int hash = mHash;
-        eprintf("  mHash: %d [expected %d]\n", hash, calcHash());
+        eprintf("  mHash: %d [expected %d]\n", hashStored, hashReal);
         eprintf("  mBuf: %p\n", mBuf);
     }
+
     eprintf("Dump end\n");
-    exit(228);
+    abort();
 }

@@ -8,7 +8,21 @@ public:
     int pop();
     void push(int x);
 
-private:
+    int check(bool silent = false) const;
+
+    struct Errors {
+        enum ErrorsEnum {
+            OK,
+            BAD_HEADER,
+            BAD_DATA,
+            BAD_SIZE,
+            POP_WHEN_EMPTY
+        };
+
+        static constexpr const char* getMessage(int code);
+    };
+
+// private:
     const static int MIN_CAPACITY = 8;
     const static int GROW_FACTOR = 2;
     const static int MIN_INVERSE_FULLNESS = 3;
@@ -19,14 +33,12 @@ private:
         mutable int mHash;
 
         int calcHash() const;
-        bool softCheck(int canary) const;
+        bool silentCheck(int canary) const;
         void updateHash();
     };
 
     int calcHash() const;
-    bool softCheck() const;
-    void check() const;
-    void checkAt(int i) const;
+    bool silentCheckAt(int i) const;
     void realloc(int cap);
     int topIndex() const;
     void updateHash();
