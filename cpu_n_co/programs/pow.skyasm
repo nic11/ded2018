@@ -1,0 +1,20 @@
+set r0 2
+push r0
+push r0
+set r1 0
+set r2 11
+set r3 1
+push r2
+push r1
+loop:
+pop r1
+pop r2
+mul
+push r2
+push r3
+push r1
+add
+pop r1
+pop r3
+push r1
+jlt loop
