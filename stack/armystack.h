@@ -1,12 +1,14 @@
 class ArmyStack {
 public:
+    typedef long long Type;
+
     ArmyStack(int cap=MIN_CAPACITY, int canariesVal=0xBAD7DED);
     ~ArmyStack();
 
     int size() const;
-    int top() const;
-    int pop();
-    void push(int x);
+    Type top() const;
+    Type pop();
+    void push(Type x);
 
     int check(bool silent = false) const;
 
@@ -29,7 +31,7 @@ public:
 
     struct Element {
         int mCanary;
-        int mData;
+        Type mData;
         mutable int mHash;
 
         int calcHash() const;

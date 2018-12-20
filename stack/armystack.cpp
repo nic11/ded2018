@@ -125,14 +125,14 @@ int ArmyStack::size() const {
     return mSize;
 }
 
-int ArmyStack::top() const {
+ArmyStack::Type ArmyStack::top() const {
     check();
     const Element& el = mBuf[topIndex()];
     assert(el.silentCheck(mCanariesVal));
     return el.mData;
 }
 
-void ArmyStack::push(int x) {
+void ArmyStack::push(Type x) {
     check();
 
     if (mSize == mCapacity) {
@@ -151,10 +151,10 @@ void ArmyStack::push(int x) {
     check();
 }
 
-int ArmyStack::pop() {
+ArmyStack::Type ArmyStack::pop() {
     check();
 
-    int x = top();
+    Type x = top();
     --mSize;
     updateHash();
 
@@ -205,7 +205,7 @@ void ArmyStack::crashAndDump(const char* reason) const {
 
             eprintf("%s mCanary: %d\n", tmp, mBuf[i].mCanary);
             std::fill(tmp, tmp + len, ' ');
-            eprintf("%s mData: %d\n", tmp, mBuf[i].mData);
+            eprintf("%s mData: %lld\n", tmp, mBuf[i].mData);
 
             if (mBuf[i].silentCheck(mCanariesVal)) {
                 eprintf("%s mHash: %d\n", tmp, mBuf[i].mHash);
