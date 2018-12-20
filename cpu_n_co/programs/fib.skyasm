@@ -1,0 +1,32 @@
+set r3 0
+set r0 1
+push r3
+push r0
+set r1 0
+set r2 20
+push r2
+push r1
+loop:
+pop r1
+pop r2
+set r3 1337
+stor r3
+load r3
+add
+pop r0
+set r3 322
+stor r3
+set r3 1337
+load r3
+push r0
+push r2
+set r3 1
+push r3
+push r1
+add
+pop r1
+pop r3
+push r1
+jlt loop
+pop r0
+pop r0

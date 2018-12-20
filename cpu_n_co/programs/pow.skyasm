@@ -18,3 +18,5 @@ pop r1
 pop r3
 push r1
 jlt loop
+pop r0
+pop r0

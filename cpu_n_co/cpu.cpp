@@ -18,7 +18,7 @@ void tick(const std::vector<word>& code, State& state) {
 }
 
 void exec(const std::vector<word>& code, State& state) {
-    state.ram.resize(1 << 10); // 1 MB
+    state.ram.resize(1 << 20); // 1 MB
     state.ip = 0;
 
     word prev_ip = -1;

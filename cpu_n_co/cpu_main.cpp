@@ -1,51 +1,41 @@
 #include <iostream>
+#include <cassert>
+#include <fstream>
 
 #include "cpu.h"
 #include "commands_defs.h"
 
-int main() {
-    std::vector<word> code {
-        82543837201,
-0,
-2,
-82543837202,
-0,
-82543837202,
-0,
-82543837201,
-1,
-0,
-82543837201,
-2,
-11,
-82543837201,
-3,
-1,
-82543837202,
-2,
-82543837202,
-1,
-82543837203,
-1,
-82543837203,
-2,
-82543837187,
-82543837202,
-2,
-82543837202,
-3,
-82543837202,
-1,
-82543837185,
-82543837203,
-1,
-82543837203,
-3,
-82543837202,
-1,
-82543837220,
--18,
-    };
+word bytesToWord(char* b) {
+    unsigned long long w = 0;
+    for (int i = 0; i < 8; ++i) {
+        w <<= 8;
+        w |= (unsigned char)b[i];
+    }
+    return (word)w;
+}
+
+char* wordToBytes(word w) {
+    static_assert(sizeof(w) == 8, "word should be 64-bit");
+    static unsigned char c[8];
+    for (int i = 7; i >= 0; --i) {
+        c[7 - i] = ((unsigned long long)w >> (8 * i)) & 0xff;
+    }
+    assert(bytesToWord((char*)c) == w);
+    return (char*)c;
+}
+
+int main(int argc, char** argv) {
+    assert(argc == 2);
+    std::vector<word> code;
+    std::ifstream fin(argv[1], std::ostream::binary);
+
+    while (true) {
+        char c[8];
+        fin.read(c, 8);
+        if (fin.eof()) break;
+
+        code.push_back(bytesToWord(c));
+    }
 
     State state;
     exec(code, state);
@@ -64,8 +54,4 @@ int main() {
         std::cout << "  " << state.stack.top() << "\n";
         state.stack.pop();
     }
-    std::cout << "\n";
-
-    // std::cout << "ram:\n";
-    // for (int i = 0; i < 
 }
