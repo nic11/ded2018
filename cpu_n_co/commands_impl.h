@@ -6,17 +6,17 @@
 
 #define SKYPROC_EXEC_SIGNATURE(name) inline void SKYPROC_CMD_##name##_exec(const std::vector<word>& code, State& state)
 
-#define SKYPROC_BINOP_EXEC(name, op_) \
-    SKYPROC_EXEC_SIGNATURE(name) { \
-        UNUSED(code); \
+#define SKYPROC_BINOP_EXEC(name, op_)    \
+    SKYPROC_EXEC_SIGNATURE(name) {       \
+        UNUSED(code);                    \
         assert(state.stack.size() >= 2); \
-        word top = state.stack.top(); \
-        state.stack.pop(); \
-        word bot = state.stack.top(); \
-        \
-        state.stack.push(top op_ bot); \
-        \
-        state.ip++; \
+        word top = state.stack.top();    \
+        state.stack.pop();               \
+        word bot = state.stack.top();    \
+                                         \
+        state.stack.push(top op_ bot);   \
+                                         \
+        state.ip++;                      \
     }
 
 SKYPROC_BINOP_EXEC(ADD, +)

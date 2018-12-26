@@ -13,7 +13,7 @@ void tick(const std::vector<word>& code, State& state) {
 
 #include "commands_defs.h"
     /* else */ {
-        assert(false && "Invalid instruction");
+        assert("Invalid instruction" && false);
     }
 }
 
