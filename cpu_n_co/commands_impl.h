@@ -106,9 +106,9 @@ SKYPROC_JMP_EXEC(JGE, >=)
 
 
 SKYPROC_EXEC_SIGNATURE(CALL) {
-    word new_ip = code.at(state.ip + 1);
+    word offset = code.at(state.ip + 1);
     state.stack.push(state.ip + 2);
-    state.ip = new_ip;
+    state.ip += offset;
 }
 
 SKYPROC_EXEC_SIGNATURE(RET) {
@@ -117,6 +117,12 @@ SKYPROC_EXEC_SIGNATURE(RET) {
     word new_ip = state.stack.top();
     state.stack.pop();
     state.ip = new_ip;
+}
+
+
+SKYPROC_EXEC_SIGNATURE(NOP) {
+    UNUSED(code);
+    ++state.ip;
 }
 
 #undef UNUSED

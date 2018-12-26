@@ -1,0 +1,35 @@
+set r0 6
+call fact
+jmp end
+
+fact:
+push r0
+set r1 1
+push r1
+jlt factrec
+pop r0
+pop r0
+set r0 1
+ret
+
+factrec:
+pop r3
+pop r3
+push r0
+set r1 1
+push r1
+push r0
+sub
+pop r1
+pop r3
+push r1
+pop r0
+call fact
+push r0
+mul
+pop r0
+pop r3
+ret
+
+end:
+nop
